@@ -1,0 +1,2 @@
+import { PackageOpen } from 'lucide-react'
+export function EmptyState({title,description}:{title:string;description?:string}){return <div className='grid min-h-48 place-items-center rounded-2xl border border-dashed border-[var(--line)] p-8 text-center text-[var(--muted)]'><div><PackageOpen className='mx-auto mb-3 h-10 w-10'/><strong className='block text-[var(--text)]'>{title}</strong>{description?<p className='mt-1'>{description}</p>:null}</div></div>}

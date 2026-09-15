@@ -1,0 +1,18 @@
+import { useEffect } from 'react'
+import { Navigate, Route, Routes } from 'react-router-dom'
+import { BuyerLayout } from '@/components/layouts/BuyerLayout'
+import { SellerLayout } from '@/components/layouts/SellerLayout'
+import { HomePage } from '@/features/buyer/pages/HomePage'
+import { ProductPage } from '@/features/buyer/pages/ProductPage'
+import { CartPage } from '@/features/buyer/pages/CartPage'
+import { CheckoutPage } from '@/features/buyer/pages/CheckoutPage'
+import { AccountPage } from '@/features/buyer/pages/AccountPage'
+import { DashboardPage } from '@/features/seller/pages/DashboardPage'
+import { ProductsPage } from '@/features/seller/pages/ProductsPage'
+import { OrdersPage } from '@/features/seller/pages/OrdersPage'
+import { VouchersPage } from '@/features/seller/pages/VouchersPage'
+import { ReportsPage } from '@/features/seller/pages/ReportsPage'
+import { SettingsPage } from '@/features/seller/pages/SettingsPage'
+import { useThemeStore } from '@/stores/theme.store'
+
+export function App(){const hydrateTheme=useThemeStore((s)=>s.hydrateTheme);useEffect(()=>hydrateTheme(),[hydrateTheme]);return <Routes><Route element={<BuyerLayout/>}><Route index element={<HomePage/>}/><Route path='product/:id' element={<ProductPage/>}/><Route path='cart' element={<CartPage/>}/><Route path='checkout' element={<CheckoutPage/>}/><Route path='account' element={<AccountPage/>}/></Route><Route path='seller' element={<SellerLayout/>}><Route index element={<DashboardPage/>}/><Route path='products' element={<ProductsPage/>}/><Route path='orders' element={<OrdersPage/>}/><Route path='vouchers' element={<VouchersPage/>}/><Route path='reports' element={<ReportsPage/>}/><Route path='settings' element={<SettingsPage/>}/></Route><Route path='*' element={<Navigate to='/' replace/>}/></Routes>}

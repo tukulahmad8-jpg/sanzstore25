@@ -1,0 +1,14 @@
+{
+  "name": "sanzstore25-v4",
+  "version": "4.0.0-alpha9-transaction-system",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "apps/web"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace apps/web",
+    "build": "npm run build --workspace apps/web",
+    "typecheck": "npm run typecheck --workspace apps/web"
+  }
+}
