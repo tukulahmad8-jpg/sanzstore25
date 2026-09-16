@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
+import { shareProduct } from '@/lib/share-product'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { ChevronLeft, ChevronRight, Heart, Share2, ShoppingCart, Star, X } from 'lucide-react'
@@ -42,6 +43,9 @@ export function ProductPage() {
   const [descriptionExpanded, setDescriptionExpanded] = useState(false)
   const [activeTab, setActiveTab] = useState<ProductTab>('description')
   const [previewOpen, setPreviewOpen] = useState(false)
+  const [sharing, setSharing] = useState(false)
+  const shareBusy = useRef(false)
+  const [manualShareUrl, setManualShareUrl] = useState('')
   const [selectedVariantId, setSelectedVariantId] = useState('')
   const images = useMemo(() => product?.images?.length ? product.images : [product?.image ?? '/placeholder.svg'], [product])
   const related = products.filter((item) => item.id !== product?.id && item.category === product?.category).slice(0, 4)
@@ -96,11 +100,18 @@ export function ProductPage() {
   }
 
   async function handleShare() {
+    if (shareBusy.current) return
+    shareBusy.current = true
+    setSharing(true)
+    setManualShareUrl('')
+    const url = `${window.location.origin}${window.location.pathname}`
     try {
-      await navigator.clipboard?.writeText(window.location.href)
-      notify('Link produk disalin')
-    } catch {
-      notify('Gagal menyalin link produk')
+      const result = await shareProduct(currentProduct.title, url)
+      if (result === 'copied') notify('Link produk disalin')
+      if (result === 'manual') setManualShareUrl(url)
+    } finally {
+      shareBusy.current = false
+      setSharing(false)
     }
   }
 
@@ -185,10 +196,16 @@ export function ProductPage() {
                 className={`relative z-10 inline-flex h-11 cursor-pointer items-center justify-center gap-2 rounded-xl font-semibold transition hover:bg-brand/10 ${wished ? 'text-brand' : 'text-[var(--text)]'}`}>
                 <Heart size={18} fill={wished ? 'currentColor' : 'none'} /> {wished ? 'Tersimpan' : 'Wishlist'}
               </button>
-              <button type="button" onClick={handleShare} className="inline-flex h-11 items-center justify-center gap-2 rounded-xl font-semibold transition hover:bg-[var(--surface-2)]">
+              <button type="button" onClick={handleShare} disabled={sharing} className="inline-flex h-11 items-center justify-center gap-2 rounded-xl font-semibold transition hover:bg-[var(--surface-2)] disabled:opacity-50">
                 <Share2 size={18}/> Bagikan
               </button>
             </div>
+            {manualShareUrl && manualShareUrl === `${window.location.origin}${window.location.pathname}` ? (
+              <div className="mt-3 rounded-xl border border-[var(--line)] p-3">
+                <label htmlFor="product-share-url" className="text-sm">Salin tautan berikut untuk membagikan produk:</label>
+                <input id="product-share-url" readOnly value={manualShareUrl} onFocus={(event) => event.currentTarget.select()} className="mt-2 w-full rounded-lg border border-[var(--line)] bg-[var(--surface-2)] p-2 text-sm" />
+              </div>
+            ) : null}
           </div>
         </div>
 
