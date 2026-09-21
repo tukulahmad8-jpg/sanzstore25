@@ -4,6 +4,7 @@ import type { Product } from '@/types/domain'
 import { useWishlistStore } from '@/stores/wishlist.store'
 import { useCartStore } from '@/stores/cart.store'
 import { formatCurrency } from '@/utils/format'
+import { toast } from '@/lib/notify'
 import type { ProductMetrics } from '@/services/product-metrics.service'
 
 export function ProductCard({ product, metrics }: { product: Product; metrics?: ProductMetrics }) {
@@ -44,6 +45,7 @@ export function ProductCard({ product, metrics }: { product: Product; metrics?: 
                 if (outOfStock) return
                 if (hasVariants) { navigate(`/product/${product.id}`); return }
                 addToCart(product)
+                toast('Produk masuk keranjang', 'success')
               }}
               className="grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-brand/25 bg-brand/10 text-brand transition hover:bg-brand hover:text-white disabled:cursor-not-allowed disabled:opacity-35"
               aria-label={hasVariants ? "Pilih varian produk" : "Tambah ke keranjang"}
@@ -56,7 +58,10 @@ export function ProductCard({ product, metrics }: { product: Product; metrics?: 
       </Link>
 
       <button
-        onClick={() => void toggleWishlist(product.id)}
+        onClick={() => {
+          toggleWishlist(product.id)
+          toast(wished ? 'Produk dihapus dari wishlist' : 'Produk disimpan ke wishlist', 'success')
+        }}
         className={`absolute right-3 top-3 grid h-9 w-9 place-items-center rounded-full border border-white/20 bg-black/50 text-white backdrop-blur-md transition hover:bg-white hover:text-slate-950 active:scale-90 ${wished ? '!bg-brand !text-white' : ''}`}
         aria-label="Wishlist"
       >
