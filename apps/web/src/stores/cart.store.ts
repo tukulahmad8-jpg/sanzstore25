@@ -198,6 +198,34 @@ export const useCartStore = create<CartState>((set, get) => ({
   clear: () => { const next = write([]); set({ items: next }) },
 }))
 
+// Saat pengunjung login, pindahkan isi keranjang tamu ke keranjang akunnya (jumlah yang sama
+// digabung dengan mengambil yang lebih besar), lalu kosongkan keranjang tamu. Tanpa ini,
+// pembeli yang menambah produk sebelum login melihat keranjangnya kosong setelah login.
+function mergeGuestCartIntoAccount(userId: string) {
+  try {
+    const guestKey = 'sanz-cart-v5:guest'
+    const accountKey = `sanz-cart-v5:${userId}`
+    const guest = normalize(JSON.parse(localStorage.getItem(guestKey) ?? '[]') as CartItem[])
+    if (!guest.length) return
+
+    const account = normalize(JSON.parse(localStorage.getItem(accountKey) ?? '[]') as CartItem[])
+    const merged = new Map<string, CartItem>()
+    for (const item of account) merged.set(cartItemKey(item), item)
+    for (const item of guest) {
+      const key = cartItemKey(item)
+      const existing = merged.get(key)
+      merged.set(key, existing ? { ...existing, qty: Math.max(existing.qty, item.qty) } : item)
+    }
+
+    localStorage.setItem(accountKey, JSON.stringify(Array.from(merged.values())))
+    localStorage.removeItem(guestKey)
+  } catch {
+    // Data keranjang rusak atau penyimpanan tidak tersedia: lewati, keranjang akun tetap dimuat.
+  }
+}
+
 useAuthStore.subscribe((state, previous) => {
-  if (state.user?.id !== previous.user?.id) useCartStore.getState().hydrate()
+  if (state.user?.id === previous.user?.id) return
+  if (state.user?.id && !previous.user?.id) mergeGuestCartIntoAccount(state.user.id)
+  useCartStore.getState().hydrate()
 })
