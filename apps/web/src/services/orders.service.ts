@@ -103,6 +103,16 @@ export async function getOrders() {
   return { data: (data ?? []) as Order[] }
 }
 
+// Satu pesanan saja (dipakai halaman pembayaran). Jauh lebih ringan daripada getOrders().
+export async function getOrderById(orderId: string) {
+  const supabase = getSupabaseClient()
+  if (!supabase) return { data: getLocalOrders().find((order) => order.id === orderId) ?? null }
+
+  const { data, error } = await supabase.from('orders').select('*').eq('id', orderId).maybeSingle()
+  if (error) throw new Error(`Gagal mengambil pesanan: ${error.message}`)
+  return { data: (data ?? null) as Order | null }
+}
+
 export async function getBuyerOrders(identity?: string) {
   const supabase = getSupabaseClient()
   const local = getLocalOrders().filter((order: any) => !identity

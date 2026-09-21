@@ -53,6 +53,7 @@ function statusLabel(order: any) {
   if (order.status === 'Dikirim') return 'Dikirim'
   if (['Packing', 'Diproses', 'Dikemas'].includes(order.status)) return 'Diproses'
   if (order.payment_status === 'paid' || order.status === 'Dibayar') return 'Sudah Bayar'
+  if (order.payment_status === 'expired' || normalizedOrderStatus(order) === 'kedaluwarsa') return 'Kedaluwarsa'
   return 'Menunggu Bayar'
 }
 
@@ -306,7 +307,7 @@ export function SellerOrdersPage() {
     window.open(url, '_blank', 'noopener,noreferrer')
   }
 
-  const waitingPaymentCount = orders.filter((order: any) => order.payment_status !== 'paid' && !['Dibatalkan', 'Selesai'].includes(order.status)).length
+  const waitingPaymentCount = orders.filter((order: any) => statusLabel(order) === 'Menunggu Bayar').length
   const paidCount = orders.filter((order: any) => order.payment_status === 'paid').length
   const shippingCount = orders.filter((order: any) => order.status === 'Dikirim').length
   const completedCount = orders.filter((order: any) => order.status === 'Selesai').length
@@ -316,7 +317,7 @@ export function SellerOrdersPage() {
     return orders.filter((order: any) => statusLabel(order) === statusFilter)
   }, [orders, statusFilter])
 
-  const orderFilters = ['Semua', 'Menunggu Bayar', 'Sudah Bayar', 'Diproses', 'Dikirim', 'Refund', 'Selesai']
+  const orderFilters = ['Semua', 'Menunggu Bayar', 'Sudah Bayar', 'Diproses', 'Dikirim', 'Refund', 'Selesai', 'Kedaluwarsa']
 
   if (loading) {
     return <main className="seller-page"><p className="seller-loading-text">Memuat pesanan seller...</p></main>
@@ -399,7 +400,7 @@ export function SellerOrdersPage() {
 
           const cancelled = order.payment_status === 'cancelled' || order.status === 'Dibatalkan'
           const displayStatus = statusLabel(order)
-          const finalOrRefund = isRefundOrFinalOrder(order) || ['Refund', 'Dibatalkan', 'Selesai'].includes(displayStatus)
+          const finalOrRefund = isRefundOrFinalOrder(order) || ['Refund', 'Dibatalkan', 'Selesai', 'Kedaluwarsa'].includes(displayStatus)
           // V44: Refund is always view-only in Seller UI. The active Refund tab also forces view-only.
           const viewOnlyOrder = statusFilter === 'Refund' || displayStatus === 'Refund' || finalOrRefund
           const fulfillmentEligible = !viewOnlyOrder && ['Sudah Bayar', 'Diproses'].includes(displayStatus)
@@ -411,7 +412,7 @@ export function SellerOrdersPage() {
             <article className="seller-order-card" data-order-status={displayStatus.toLowerCase()} data-view-only={viewOnlyOrder ? "true" : "false"} key={order.id}>
               <div className="seller-order-header">
                 <div className="min-w-0">
-                  <div className="seller-order-id-row"><strong>{order.id}</strong><span className={`seller-order-status status-${displayStatus.toLowerCase().split(' ').join('-')}`}>{displayStatus}</span></div>
+                  <div className="seller-order-id-row"><strong>{order.id}</strong><span className={`seller-order-status status-${(displayStatus === 'Kedaluwarsa' ? 'Dibatalkan' : displayStatus).toLowerCase().split(' ').join('-')}`}>{displayStatus}</span></div>
                   <p>Buyer: <b>{order.customer?.name || order.buyer_phone || '-'}</b></p>
                 </div>
                 <div className="seller-order-total"><span>Total pesanan</span><strong>{rupiah(order.total)}</strong></div>
@@ -615,7 +616,7 @@ export function SellerOrdersPage() {
                   <b>{selectedOrder.resi || 'Belum tersedia'}</b>
                 </div>
 
-                {!(isRefundOrFinalOrder(selectedOrder) || ['Refund', 'Dibatalkan', 'Selesai'].includes(statusLabel(selectedOrder))) ? (
+                {!(isRefundOrFinalOrder(selectedOrder) || ['Refund', 'Dibatalkan', 'Selesai', 'Kedaluwarsa'].includes(statusLabel(selectedOrder))) ? (
                   <div className="mt-4 grid gap-2" data-final-refund="false">
                     {statusLabel(selectedOrder) === 'Sudah Bayar' && selectedOrder.payment_status === 'paid' ? (
                       <Button type="button" className="seller-action-process" disabled={saving} onClick={() => void processOrder(selectedOrder)}>

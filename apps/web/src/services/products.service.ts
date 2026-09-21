@@ -45,6 +45,16 @@ function normalizeProducts(products: Product[]) {
   return products.map(normalizeProduct)
 }
 
+// Pembeli membaca lewat view products_public, yang sengaja TIDAK memuat
+// cost_price, supplier, dan rack. Tabel products asli hanya untuk sesi seller.
+const PUBLIC_VIEW = 'products_public'
+const PUBLIC_COLUMNS = 'id,title,category,price,stock,weight,image,images,summary,badge,status,sold,has_variants,variants,created_at,updated_at'
+
+function stripPrivateFields(product: Product): Product {
+  const { cost_price: _cost, supplier: _supplier, rack: _rack, ...rest } = product
+  return rest as Product
+}
+
 const demoProducts: Product[] = [
   {
     id: 'demo-mouse-rgb',
@@ -74,8 +84,8 @@ export async function getProducts() {
   }
 
   const { data, error } = await supabase
-    .from('products')
-    .select('*')
+    .from(PUBLIC_VIEW)
+    .select(PUBLIC_COLUMNS)
     .order('created_at', { ascending: false })
 
   if (error) {
@@ -100,8 +110,8 @@ export async function getProductsByIdsStrict(ids: string[]) {
   if (!supabase) throw new Error('Supabase belum dikonfigurasi. Stok tidak dapat diverifikasi.')
 
   const { data, error } = await supabase
-    .from('products')
-    .select('*')
+    .from(PUBLIC_VIEW)
+    .select(PUBLIC_COLUMNS)
     .in('id', uniqueIds)
 
   if (error) throw new Error(`Gagal memverifikasi stok terbaru: ${error.message}`)
@@ -113,8 +123,8 @@ export async function getProductById(id: string) {
 
   if (supabase) {
     const { data, error } = await supabase
-      .from('products')
-      .select('*')
+      .from(PUBLIC_VIEW)
+      .select(PUBLIC_COLUMNS)
       .eq('id', id)
       .maybeSingle()
 
@@ -145,11 +155,11 @@ function toProductWriteRow(product: Product) {
     title: product.title,
     category: product.category || 'Produk',
     price: Number(product.price ?? 0),
-    cost_price: Number(product.cost_price ?? 0),
+    ...(product.cost_price !== undefined ? { cost_price: Number(product.cost_price) } : {}),
     stock: Math.max(0, Number(product.stock ?? 0)),
     weight: Math.max(0, Number(product.weight ?? 0)),
-    rack: product.rack ?? '',
-    supplier: product.supplier ?? {},
+    ...(product.rack !== undefined ? { rack: product.rack } : {}),
+    ...(product.supplier !== undefined ? { supplier: product.supplier } : {}),
     image: product.image ?? '',
     images: Array.isArray(product.images) ? product.images : [],
     summary: product.summary ?? '',
@@ -173,6 +183,22 @@ async function requireSellerClient() {
   return supabase
 }
 
+// Khusus Seller Center: membaca tabel asli (termasuk harga modal dan supplier) dengan sesi seller.
+export async function getSellerProducts() {
+  const supabase = await requireSellerClient()
+  const { data, error } = await supabase
+    .from('products')
+    .select('*')
+    .order('created_at', { ascending: false })
+
+  if (error) {
+    console.error('[products:seller-read]', error)
+    throw new Error(`Produk gagal dimuat dari database: ${error.message}`)
+  }
+
+  return { data: normalizeProducts((data ?? []) as Product[]) }
+}
+
 export async function saveProduct(product: Product) {
   const supabase = await requireSellerClient()
 
@@ -188,7 +214,7 @@ export async function saveProduct(product: Product) {
   }
 
   const saved = normalizeProduct(data as Product)
-  mergeLocalProduct(saved)
+  mergeLocalProduct(stripPrivateFields(saved))
   return { data: saved }
 }
 

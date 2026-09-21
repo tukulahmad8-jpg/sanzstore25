@@ -4,6 +4,8 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { ChevronLeft, ChevronRight, Heart, Share2, ShoppingCart, Star, X } from 'lucide-react'
 import { getProductById, getProducts } from '@/services/products.service'
+import { getProductReviews } from '@/services/reviews.service'
+import { ReviewList } from '../components/ReviewList'
 import { Button } from '@/components/common/Button'
 import { useCartStore } from '@/stores/cart.store'
 import { useWishlistStore } from '@/stores/wishlist.store'
@@ -30,6 +32,12 @@ export function ProductPage() {
     refetchOnMount: 'always',
     refetchOnWindowFocus: true,
   })
+  const { data: reviewsData, isLoading: reviewsLoading } = useQuery({
+    queryKey: ['product-reviews', id],
+    queryFn: () => getProductReviews(id || ''),
+    enabled: Boolean(id),
+  })
+  const reviews = reviewsData?.data ?? []
   const products = data?.data ?? []
   const product = productData?.data ?? products.find((item) => item.id === id)
   const addItem = useCartStore((state) => state.addItem)
@@ -265,7 +273,7 @@ export function ProductPage() {
               {activeTab === 'reviews' ? (
                 <div className="pt-5">
                   <h2 className="text-xl font-semibold">Ulasan Produk</h2>
-                  <div className="mt-4 rounded-xl border border-dashed border-[var(--line)] p-8 text-center text-sm text-[var(--muted)]">Belum ada ulasan untuk produk ini.</div>
+                  <ReviewList reviews={reviews} loading={reviewsLoading} />
                 </div>
               ) : null}
 

@@ -3,7 +3,7 @@ import { AlertCircle, CheckCircle2, CreditCard, Image, MapPin, Megaphone, Phone,
 import { Button } from '@/components/common/Button'
 import { Card } from '@/components/common/Card'
 import { Input } from '@/components/common/Input'
-import { getSupabaseClient } from '@/lib/supabase'
+import { getSellerSupabaseClient } from '@/lib/supabase'
 
 const defaults = {
   store_name: 'SanzStore25',
@@ -23,7 +23,7 @@ export function SettingsPage() {
 
   useEffect(() => {
     async function load() {
-      const supabase = getSupabaseClient()
+      const supabase = getSellerSupabaseClient()
       if (!supabase) {
         setMessage('Supabase belum terhubung.')
         setLoading(false)
@@ -51,7 +51,7 @@ export function SettingsPage() {
 
   async function save(event: FormEvent) {
     event.preventDefault()
-    const supabase = getSupabaseClient()
+    const supabase = getSellerSupabaseClient()
     if (!supabase || saving) return
 
     setSaving(true)

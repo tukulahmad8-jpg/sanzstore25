@@ -13,9 +13,9 @@ import {
   WalletCards,
 } from 'lucide-react'
 import { Card } from '@/components/common/Card'
-import { getSupabaseClient } from '@/lib/supabase'
+import { getSellerSupabaseClient } from '@/lib/supabase'
 import { getSellerOrders } from '@/services/orders.service'
-import { getProducts } from '@/services/products.service'
+import { getSellerProducts } from '@/services/products.service'
 import { formatCurrency } from '@/utils/format'
 
 type ReviewRow = {
@@ -28,7 +28,7 @@ type ReviewRow = {
 }
 
 async function getReviews(): Promise<ReviewRow[]> {
-  const supabase = getSupabaseClient()
+  const supabase = getSellerSupabaseClient()
   if (!supabase) return []
 
   const { data, error } = await supabase
@@ -54,10 +54,11 @@ function isRevenueOrder(order: any) {
   const paymentStatus = String(order.payment_status || '').trim().toLowerCase()
   const refundStatus = String(order.refund?.status || '').trim().toLowerCase()
 
-  // Dashboard seller must use the same order population shown on the seller order page.
-  // Exclude only orders that are definitively cancelled/refunded/expired. Older orders
-  // may not have payment_status="paid" even though they are valid seller orders.
-  return !['refund', 'dibatalkan', 'cancelled', 'canceled'].includes(status)
+  // Omzet hanya dari pesanan yang sudah dibayar. isPaid() tetap mengenali pesanan lama
+  // yang statusnya sudah Diproses/Dikirim/Selesai walau payment_status belum "paid".
+  // Pesanan "Belum Bayar" tidak boleh ikut dihitung sebagai penjualan.
+  return isPaid(order)
+    && !['refund', 'dibatalkan', 'kedaluwarsa', 'cancelled', 'canceled'].includes(status)
     && !['cancelled', 'canceled', 'expired'].includes(paymentStatus)
     && !['pending', 'completed', 'refunded'].includes(refundStatus)
 }
@@ -87,7 +88,7 @@ function statusTone(order: any) {
 export function SellerDashboardPage() {
   const navigate = useNavigate()
   const { data: ordersData, isLoading: loadingOrders } = useQuery({ queryKey: ['seller-orders'], queryFn: getSellerOrders, refetchOnMount: 'always', refetchOnWindowFocus: true })
-  const { data: productsData, isLoading: loadingProducts } = useQuery({ queryKey: ['products'], queryFn: getProducts, refetchOnMount: 'always', refetchOnWindowFocus: true })
+  const { data: productsData, isLoading: loadingProducts } = useQuery({ queryKey: ['seller-products'], queryFn: getSellerProducts, refetchOnMount: 'always', refetchOnWindowFocus: true })
   const { data: reviews = [], isLoading: loadingReviews } = useQuery({ queryKey: ['seller-reviews'], queryFn: getReviews })
 
   const orders = ordersData?.data ?? []
@@ -105,7 +106,9 @@ export function SellerDashboardPage() {
     const averageRating = reviews.length
       ? reviews.reduce((sum, review) => sum + Number(review.rating || 0), 0) / reviews.length
       : 0
-    const waitingPayment = orders.filter((order: any) => !isPaid(order) && !['cancelled', 'expired'].includes(String(order.payment_status || '').toLowerCase())).length
+    const waitingPayment = orders.filter((order: any) => !isPaid(order)
+      && !['cancelled', 'canceled', 'expired'].includes(String(order.payment_status || '').toLowerCase())
+      && !['dibatalkan', 'kedaluwarsa', 'refund'].includes(String(order.status || '').trim().toLowerCase())).length
     const readyToProcess = orders.filter((order: any) => isPaid(order) && !['Dikirim', 'Selesai', 'Dibatalkan'].includes(order.status)).length
 
     return {

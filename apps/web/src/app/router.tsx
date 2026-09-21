@@ -1,6 +1,6 @@
+import { lazy, Suspense, type ReactNode } from 'react'
 import { createBrowserRouter } from 'react-router-dom'
 import { BuyerLayout } from '@/components/layouts/BuyerLayout'
-import { SellerLayout } from '@/components/layouts/SellerLayout'
 import { HomePage } from '@/features/buyer/pages/HomePage'
 import { ProductPage } from '@/features/buyer/pages/ProductPage'
 import { CartPage } from '@/features/buyer/pages/CartPage'
@@ -8,15 +8,23 @@ import { CheckoutPage } from '@/features/buyer/pages/CheckoutPage'
 import { AccountPage } from '@/features/buyer/pages/AccountPage'
 import { BuyerOrderDetailPage } from '@/features/buyer/pages/BuyerOrderDetailPage'
 import { PaymentPage } from '@/features/payment/pages/PaymentPage'
-import { SellerDashboardPage } from '@/features/seller/pages/SellerDashboardPage'
-import { SellerProductsPage } from '@/features/seller/pages/SellerProductsPage'
-import { SellerOrdersPage } from '@/features/seller/pages/SellerOrdersPage'
-import { SellerVouchersPage } from '@/features/seller/pages/SellerVouchersPage'
-import { ReportsPage } from '@/features/seller/pages/ReportsPage'
-import { SettingsPage } from '@/features/seller/pages/SettingsPage'
-import { SellerLoginPage } from '@/features/seller/pages/SellerLoginPage'
 import { SellerProtectedRoute } from '@/features/seller/components/SellerProtectedRoute'
 import { ErrorPage } from './ErrorPage'
+
+// Halaman Seller (sekitar 100 KB kode) tidak perlu diunduh pembeli. Vite memecahnya
+// menjadi file terpisah yang baru dimuat saat halamannya dibuka.
+const SellerLayout = lazy(() => import('@/components/layouts/SellerLayout').then((m) => ({ default: m.SellerLayout })))
+const SellerLoginPage = lazy(() => import('@/features/seller/pages/SellerLoginPage').then((m) => ({ default: m.SellerLoginPage })))
+const SellerDashboardPage = lazy(() => import('@/features/seller/pages/SellerDashboardPage').then((m) => ({ default: m.SellerDashboardPage })))
+const SellerProductsPage = lazy(() => import('@/features/seller/pages/SellerProductsPage').then((m) => ({ default: m.SellerProductsPage })))
+const SellerOrdersPage = lazy(() => import('@/features/seller/pages/SellerOrdersPage').then((m) => ({ default: m.SellerOrdersPage })))
+const SellerVouchersPage = lazy(() => import('@/features/seller/pages/SellerVouchersPage').then((m) => ({ default: m.SellerVouchersPage })))
+const ReportsPage = lazy(() => import('@/features/seller/pages/ReportsPage').then((m) => ({ default: m.ReportsPage })))
+const SettingsPage = lazy(() => import('@/features/seller/pages/SettingsPage').then((m) => ({ default: m.SettingsPage })))
+
+function withSuspense(node: ReactNode) {
+  return <Suspense fallback={<div style={{ padding: 24, opacity: 0.7 }}>Memuat...</div>}>{node}</Suspense>
+}
 
 export const router = createBrowserRouter([
   {
@@ -35,7 +43,7 @@ export const router = createBrowserRouter([
   },
   {
     path: '/seller/login',
-    element: <SellerLoginPage />,
+    element: withSuspense(<SellerLoginPage />),
     errorElement: <ErrorPage />,
   },
   {
@@ -44,15 +52,15 @@ export const router = createBrowserRouter([
     children: [
       {
         path: '/seller',
-        element: <SellerLayout />,
+        element: withSuspense(<SellerLayout />),
         children: [
-          { index: true, element: <SellerDashboardPage /> },
-          { path: 'dashboard', element: <SellerDashboardPage /> },
-          { path: 'products', element: <SellerProductsPage /> },
-          { path: 'orders', element: <SellerOrdersPage /> },
-          { path: 'vouchers', element: <SellerVouchersPage /> },
-          { path: 'reports', element: <ReportsPage /> },
-          { path: 'settings', element: <SettingsPage /> },
+          { index: true, element: withSuspense(<SellerDashboardPage />) },
+          { path: 'dashboard', element: withSuspense(<SellerDashboardPage />) },
+          { path: 'products', element: withSuspense(<SellerProductsPage />) },
+          { path: 'orders', element: withSuspense(<SellerOrdersPage />) },
+          { path: 'vouchers', element: withSuspense(<SellerVouchersPage />) },
+          { path: 'reports', element: withSuspense(<ReportsPage />) },
+          { path: 'settings', element: withSuspense(<SettingsPage />) },
           { path: '*', element: <ErrorPage /> },
         ],
       },

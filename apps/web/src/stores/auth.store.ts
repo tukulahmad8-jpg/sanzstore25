@@ -194,8 +194,8 @@ export const useAuthStore = create<AuthState>((set) => ({
     if (!name) throw new Error('Nama wajib diisi.')
     if (!email) throw new Error('Email wajib diisi.')
     if (!phone) throw new Error('WhatsApp wajib diisi.')
-    if (payload.password.length < 4) {
-      throw new Error('Password minimal 4 karakter.')
+    if (payload.password.length < 8) {
+      throw new Error('Password minimal 8 karakter.')
     }
 
     if (useSupabaseAuth()) {

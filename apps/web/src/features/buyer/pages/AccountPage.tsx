@@ -76,6 +76,8 @@ function AccountContent() {
   const [locationKeyword, setLocationKeyword] = useState('')
   const [locations, setLocations] = useState<LocationOption[]>([])
   const [locationOpen, setLocationOpen] = useState(false)
+  const [locationStatus, setLocationStatus] = useState<'idle' | 'loading' | 'done' | 'error'>('idle')
+  const [locationError, setLocationError] = useState('')
   const [profileName, setProfileName] = useState(user?.name ?? '')
   const [profilePhone, setProfilePhone] = useState(user?.phone ?? '')
   const [profileSaving, setProfileSaving] = useState(false)
@@ -107,11 +109,27 @@ function AccountContent() {
   }, [hydrateWishlist])
 
   useEffect(() => {
+    if (!locationOpen) return
+    const keyword = locationKeyword.trim()
+    if (keyword.length < 2) {
+      setLocations([])
+      setLocationStatus('idle')
+      return
+    }
+    let cancelled = false
+    setLocationStatus('loading')
     const timeout = window.setTimeout(() => {
-      if (!locationOpen) return
-      searchLocations(locationKeyword).then((result) => setLocations(result.data))
+      searchLocations(keyword).then((result) => {
+        if (cancelled) return
+        setLocations(result.data)
+        setLocationError(result.error || '')
+        setLocationStatus(result.error ? 'error' : 'done')
+      })
     }, 300)
-    return () => window.clearTimeout(timeout)
+    return () => {
+      cancelled = true
+      window.clearTimeout(timeout)
+    }
   }, [locationKeyword, locationOpen])
 
   useEffect(() => {
@@ -307,7 +325,7 @@ function AccountContent() {
               <div className="address-form-grid">
                 <label className="address-field"><span>Nama Lengkap</span><Input required placeholder="Contoh: Ikhsan Wahyudi" value={addressForm.recipient} onChange={(e) => setAddressForm({ ...addressForm, recipient: e.target.value })}/></label>
                 <label className="address-field"><span>Nomor Telepon</span><Input required inputMode="tel" placeholder="08xxxxxxxxxx" value={addressForm.phone} onChange={(e) => setAddressForm({ ...addressForm, phone: e.target.value })}/></label>
-                <div className="address-field address-field-full"><span>Provinsi / Kota / Kecamatan / Kelurahan</span><div className="relative"><Input required className="w-full" placeholder="Cari provinsi, kota, kecamatan, kode pos" value={locationKeyword} onFocus={() => setLocationOpen(true)} onChange={(e) => { setLocationKeyword(e.target.value); setLocationOpen(true) }}/>{locationOpen ? <div className="location-results polished-location-results">{locations.length ? locations.map((location,index)=><button key={`${location.label}-${index}`} type="button" onClick={()=>selectLocation(location)}><b>{location.district || location.city}</b><span>{location.label}</span></button>) : <p>Ketik minimal 2 huruf untuk mencari lokasi.</p>}</div> : null}</div></div>
+                <div className="address-field address-field-full"><span>Provinsi / Kota / Kecamatan / Kelurahan</span><div className="relative"><Input required className="w-full" placeholder="Cari provinsi, kota, kecamatan, kode pos" value={locationKeyword} onFocus={() => setLocationOpen(true)} onChange={(e) => { setLocationKeyword(e.target.value); setLocationOpen(true) }}/>{locationOpen ? <div className="location-results polished-location-results">{locations.length ? locations.map((location,index)=><button key={`${location.label}-${index}`} type="button" onClick={()=>selectLocation(location)}><b>{location.district || location.city}</b><span>{location.label}</span></button>) : <p>{locationStatus === 'loading' ? 'Mencari lokasi...' : locationStatus === 'error' ? locationError : locationStatus === 'done' ? 'Lokasi tidak ditemukan. Coba nama kecamatan atau kota.' : 'Ketik minimal 2 huruf untuk mencari lokasi.'}</p>}</div> : null}</div></div>
                 <label className="address-field address-field-full"><span>Nama Jalan, Gedung, No. Rumah</span><Input required className="w-full" placeholder="Contoh: Jl. Adil RT 04/06 No. 12" value={addressForm.address} onChange={(e)=>setAddressForm({...addressForm,address:e.target.value})}/></label>
                 <label className="address-field address-field-full"><span>Detail Alamat <small>(opsional)</small></span><Input className="w-full" placeholder="Blok, unit, patokan, warna rumah, dll." value={addressForm.landmark} onChange={(e)=>setAddressForm({...addressForm,landmark:e.target.value})}/></label>
               </div>

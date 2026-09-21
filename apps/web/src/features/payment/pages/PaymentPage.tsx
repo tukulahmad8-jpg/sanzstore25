@@ -5,7 +5,7 @@ import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { Button } from '@/components/common/Button'
 import { Card } from '@/components/common/Card'
 import { checkPayment, createPayment } from '@/services/payment.service'
-import { cancelBuyerOrder, getOrders } from '@/services/orders.service'
+import { cancelBuyerOrder, getOrderById } from '@/services/orders.service'
 import { getSupabaseClient } from '@/lib/supabase'
 import type { Order } from '@/types/domain'
 
@@ -58,8 +58,8 @@ export function PaymentPage() {
   async function loadOrder(redirectWhenPaid = true) {
     if (!invoice) return
     try {
-      const result = await getOrders()
-      const found = (result.data || []).find((item) => item.id === invoice) || null
+      const result = await getOrderById(invoice)
+      const found = result.data || null
       setOrder(found)
       if (redirectWhenPaid && isPaidOrder(found)) navigate(`/account/orders/${invoice}`, { replace: true })
     } catch (error) {
@@ -87,7 +87,7 @@ export function PaymentPage() {
 
   useEffect(() => {
     void loadOrder(false).then(() => void reconcilePayment())
-    const orderIntervalId = window.setInterval(() => { void loadOrder(false) }, 3000)
+    const orderIntervalId = window.setInterval(() => { void loadOrder(false) }, 10000)
     const paymentIntervalId = window.setInterval(() => { void reconcilePayment() }, 5000)
     const timerId = window.setInterval(() => setNow(Date.now()), 1000)
     const supabase = getSupabaseClient()

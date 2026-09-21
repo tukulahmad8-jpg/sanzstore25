@@ -4,7 +4,7 @@ import { CalendarDays, Pencil, Plus, Power, TicketPercent, Trash2, Users, X } fr
 import { Button } from '@/components/common/Button'
 import { Card } from '@/components/common/Card'
 import { Input } from '@/components/common/Input'
-import { getSupabaseClient } from '@/lib/supabase'
+import { getSellerSupabaseClient } from '@/lib/supabase'
 
 
 type Voucher = {
@@ -67,7 +67,7 @@ export function SellerVouchersPage() {
   async function load() {
     setLoading(true)
     setMessage('')
-    const supabase = getSupabaseClient()
+    const supabase = getSellerSupabaseClient()
     if (!supabase) {
       setMessage('Supabase belum terhubung.')
       setLoading(false)
@@ -103,7 +103,7 @@ export function SellerVouchersPage() {
 
   async function submit(event: FormEvent) {
     event.preventDefault()
-    const supabase = getSupabaseClient()
+    const supabase = getSellerSupabaseClient()
     if (!supabase || saving) return
 
     setSaving(true)
@@ -135,7 +135,7 @@ export function SellerVouchersPage() {
 
   async function remove(voucher: Voucher) {
     if (!(await confirmAction(`Hapus voucher ${voucher.code}?`, { confirmText: 'Hapus voucher', danger: true }))) return
-    const supabase = getSupabaseClient()
+    const supabase = getSellerSupabaseClient()
     if (!supabase) return
     const { error } = await supabase.from('vouchers').delete().eq('id', voucher.id)
     if (error) setMessage(error.message)
@@ -143,7 +143,7 @@ export function SellerVouchersPage() {
   }
 
   async function toggle(voucher: Voucher) {
-    const supabase = getSupabaseClient()
+    const supabase = getSellerSupabaseClient()
     if (!supabase) return
     const { error } = await supabase
       .from('vouchers')

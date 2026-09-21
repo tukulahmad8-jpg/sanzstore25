@@ -10,18 +10,10 @@ export interface LocationOption {
   postalCode: string
 }
 
-const fallbackLocations: LocationOption[] = [
-  { id: '3175101001', label: 'Lubang Buaya, Cipayung, Kota Administrasi Jakarta Timur, DKI Jakarta, 13810', province: 'DKI Jakarta', city: 'Kota Administrasi Jakarta Timur', district: 'Cipayung', village: 'Lubang Buaya', postalCode: '13810' },
-  { id: '3175101002', label: 'Cipayung, Cipayung, Kota Administrasi Jakarta Timur, DKI Jakarta, 13840', province: 'DKI Jakarta', city: 'Kota Administrasi Jakarta Timur', district: 'Cipayung', village: 'Cipayung', postalCode: '13840' },
-  { id: '3175101003', label: 'Ceger, Cipayung, Kota Administrasi Jakarta Timur, DKI Jakarta, 13820', province: 'DKI Jakarta', city: 'Kota Administrasi Jakarta Timur', district: 'Cipayung', village: 'Ceger', postalCode: '13820' },
-  { id: '3175101004', label: 'Bambu Apus, Cipayung, Kota Administrasi Jakarta Timur, DKI Jakarta, 13890', province: 'DKI Jakarta', city: 'Kota Administrasi Jakarta Timur', district: 'Cipayung', village: 'Bambu Apus', postalCode: '13890' },
-  { id: '3175101008', label: 'Cilangkap, Cipayung, Kota Administrasi Jakarta Timur, DKI Jakarta, 13870', province: 'DKI Jakarta', city: 'Kota Administrasi Jakarta Timur', district: 'Cipayung', village: 'Cilangkap', postalCode: '13870' },
-  { id: '3173010001', label: 'Gambir, Gambir, Kota Administrasi Jakarta Pusat, DKI Jakarta, 10110', province: 'DKI Jakarta', city: 'Kota Administrasi Jakarta Pusat', district: 'Gambir', village: 'Gambir', postalCode: '10110' },
-  { id: '3671010001', label: 'Tangerang, Tangerang, Kota Tangerang, Banten, 15111', province: 'Banten', city: 'Kota Tangerang', district: 'Tangerang', village: 'Tangerang', postalCode: '15111' },
-]
-
-function normalize(value: string) {
-  return value.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim()
+export interface LocationSearchResult {
+  data: LocationOption[]
+  // Terisi hanya kalau pencarian gagal. Daftar kosong TANPA error berarti "tidak ditemukan".
+  error?: string
 }
 
 function normalizeRemote(row: any): LocationOption {
@@ -36,34 +28,39 @@ function normalizeRemote(row: any): LocationOption {
     province: row.province || row.province_name || '',
     city: row.city || row.city_name || '',
     district: row.district || row.district_name || row.subdistrict_name || '',
-    village: row.village || row.subdistrict_name || row.village_name || row.name || '',
+    village: row.village || row.subdistrict_name || row.village_name || '',
     postalCode: String(row.postalCode || row.zip_code || row.postal_code || ''),
   }
 }
 
-export async function searchLocations(keyword: string) {
+export async function searchLocations(keyword: string): Promise<LocationSearchResult> {
   const q = keyword.trim()
-  if (q.length < 2) return { data: [] as LocationOption[] }
+  if (q.length < 2) return { data: [] }
 
-  const local = fallbackLocations.filter((item) => normalize(item.label).includes(normalize(q)))
   const supabase = getSupabaseClient()
+  if (!supabase) return { data: [], error: 'Pencarian lokasi belum aktif. Muat ulang halaman.' }
 
-  if (supabase) {
-    try {
-      const { data, error } = await supabase.functions.invoke('rajaongkir-location-search', {
-        body: { keyword: q },
-      })
+  try {
+    const { data, error } = await supabase.functions.invoke('biteship-location-search', {
+      body: { keyword: q },
+    })
 
-      const rows = data?.locations || data?.data || []
-      if (!error && Array.isArray(rows) && rows.length) {
-        const remote = rows.map(normalizeRemote).filter((item: LocationOption) => item.label)
-        const merged = [...remote, ...local].filter((item, index, arr) => arr.findIndex((x) => x.label === item.label) === index)
-        return { data: merged.slice(0, 15) }
-      }
-    } catch {
-      // fallback local
+    if (error || data?.ok === false) {
+      console.error('[location:search] gagal', error?.message || data?.message)
+      return { data: [], error: 'Pencarian lokasi sedang bermasalah. Coba lagi beberapa saat.' }
     }
-  }
 
-  return { data: local.slice(0, 15) }
+    const rows = data?.locations || data?.data || []
+    if (!Array.isArray(rows)) return { data: [], error: 'Pencarian lokasi mengembalikan data yang tidak dikenali.' }
+
+    const locations = rows
+      .map(normalizeRemote)
+      .filter((item: LocationOption) => item.label)
+      .filter((item: LocationOption, index: number, arr: LocationOption[]) => arr.findIndex((x) => x.label === item.label) === index)
+
+    return { data: locations.slice(0, 15) }
+  } catch (err) {
+    console.error('[location:search] error', err)
+    return { data: [], error: 'Pencarian lokasi sedang bermasalah. Coba lagi beberapa saat.' }
+  }
 }

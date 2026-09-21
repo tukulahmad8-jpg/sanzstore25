@@ -55,7 +55,7 @@ export function BuyerOrdersPage() {
               <div className="mt-3 grid gap-3">
                 {(order.items || []).slice(0, 2).map((item: any, index: number) => (
                   <div key={`${order.id}-${index}`} className="flex gap-3">
-                    <Link to={`/product/${item.product?.id}`} className="block h-16 w-16 overflow-hidden rounded-xl bg-[var(--surface-2)]"><img src={item.product?.image || '/placeholder.svg'} className="h-full w-full object-contain transition hover:scale-[1.03]" /></Link>
+                    <Link to={`/product/${item.product?.id}`} className="block h-16 w-16 overflow-hidden rounded-xl bg-[var(--surface-2)]"><img src={item.product?.image || '/placeholder.svg'} alt={item.product?.title || 'Produk'} className="h-full w-full object-contain transition hover:scale-[1.03]" /></Link>
                     <div className="min-w-0 flex-1"><Link to={`/product/${item.product?.id}`} className="line-clamp-1 font-semibold hover:text-brand">{item.product?.title || 'Produk'}</Link>{item.product?.selected_variant ? <p className="mt-1 text-xs font-semibold text-brand">Varian: {item.product.selected_variant.name}</p> : null}<p className="text-sm text-[var(--muted)]">Qty {item.qty}</p></div>
                   </div>
                 ))}

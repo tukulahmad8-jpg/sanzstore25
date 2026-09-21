@@ -5,7 +5,7 @@ import { Boxes, Pencil, Plus, Power, Search, Trash2, X } from 'lucide-react'
 import { Button } from '@/components/common/Button'
 import { Card } from '@/components/common/Card'
 import { Input } from '@/components/common/Input'
-import { deleteProduct, getProducts, saveProduct } from '@/services/products.service'
+import { deleteProduct, getSellerProducts, saveProduct } from '@/services/products.service'
 import { uploadProductImage } from '@/services/upload.service'
 import type { Product, ProductVariant } from '@/types/domain'
 import { formatCurrency, slugify } from '@/utils/format'
@@ -29,7 +29,7 @@ const emptyForm = {
 
 export function SellerProductsPage() {
   const queryClient = useQueryClient()
-  const { data, isLoading } = useQuery({ queryKey: ['products'], queryFn: getProducts, refetchOnMount: 'always', refetchOnWindowFocus: true })
+  const { data, isLoading } = useQuery({ queryKey: ['seller-products'], queryFn: getSellerProducts, refetchOnMount: 'always', refetchOnWindowFocus: true })
   const products = data?.data ?? []
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
@@ -50,6 +50,7 @@ export function SellerProductsPage() {
   const saveMutation = useMutation({
     mutationFn: saveProduct,
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['seller-products'] })
       queryClient.invalidateQueries({ queryKey: ['products'] })
       setOpen(false)
       setForm(emptyForm)
@@ -91,7 +92,8 @@ export function SellerProductsPage() {
     const ok = await confirmAction(`Hapus produk ${product.title}?`, { confirmText: 'Hapus produk', danger: true })
     if (!ok) return
     await deleteProduct(product.id)
-    queryClient.invalidateQueries({ queryKey: ['products'] })
+    queryClient.invalidateQueries({ queryKey: ['seller-products'] })
+      queryClient.invalidateQueries({ queryKey: ['products'] })
   }
 
   async function toggleProduct(product: Product) {
