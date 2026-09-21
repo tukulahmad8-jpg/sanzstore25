@@ -88,5 +88,22 @@ export const useWishlistStore = create<WishlistState>((set, get) => ({
 }))
 
 useAuthStore.subscribe((state, previous) => {
-  if (state.user?.id !== previous.user?.id) useWishlistStore.getState().hydrate()
+  if (state.user?.id === previous.user?.id) return
+  // Login: gabungkan wishlist tamu ke wishlist akun, lalu kosongkan wishlist tamu.
+  if (state.user?.id && !previous.user?.id) {
+    try {
+      const guestKey = 'sanzstore25-wishlist-v2:guest'
+      const accountKey = `sanzstore25-wishlist-v2:${state.user.id}`
+      const guest = JSON.parse(localStorage.getItem(guestKey) ?? '[]')
+      const account = JSON.parse(localStorage.getItem(accountKey) ?? '[]')
+      if (Array.isArray(guest) && guest.length) {
+        const merged = Array.from(new Set([...(Array.isArray(account) ? account : []), ...guest].filter((id) => typeof id === 'string' && id.trim())))
+        localStorage.setItem(accountKey, JSON.stringify(merged))
+        localStorage.removeItem(guestKey)
+      }
+    } catch {
+      // abaikan: wishlist akun tetap dimuat
+    }
+  }
+  useWishlistStore.getState().hydrate()
 })
