@@ -1,0 +1,71 @@
+name: Rapikan repo (sekali jalan)
+
+# Dijalankan manual saja: tab Actions -> "Rapikan repo (sekali jalan)" -> Run workflow.
+# Tidak berjalan otomatis setiap ada perubahan.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  rapikan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ambil isi repo
+        uses: actions/checkout@v4
+
+      - name: Salin file perbaikan dari folder utama ke jalur yang benar (apps/web/src)
+        run: |
+          pindah() {
+            # $1 = sumber di folder utama, $2 = tujuan, $3 = penanda bahwa itu versi baru
+            if [ -f "$1" ] && grep -q "$3" "$1"; then
+              cp "$1" "$2"
+              echo "OK     $1  ->  $2"
+            else
+              echo "LEWATI $1 (tidak ada di folder utama atau bukan versi baru)"
+            fi
+          }
+          pindah ProductPage.tsx        apps/web/src/features/buyer/pages/ProductPage.tsx         getProductMetrics
+          pindah AccountPage.tsx        apps/web/src/features/buyer/pages/AccountPage.tsx         getMyOrders
+          pindah orders.service.ts      apps/web/src/services/orders.service.ts                   getMyOrders
+          pindah SellerProductsPage.tsx apps/web/src/features/seller/pages/SellerProductsPage.tsx CheckCircle2
+
+      - name: Pastikan versi baru sudah ada di apps/web/src (kalau belum, berhenti tanpa menghapus apa pun)
+        run: |
+          gagal=0
+          cek() {
+            if ! grep -q "$1" "$2"; then echo "KURANG: '$1' belum ada di $2"; gagal=1; fi
+          }
+          cek getProductMetrics apps/web/src/features/buyer/pages/ProductPage.tsx
+          cek getMyOrders       apps/web/src/features/buyer/pages/AccountPage.tsx
+          cek getMyOrders       apps/web/src/services/orders.service.ts
+          cek CheckCircle2      apps/web/src/features/seller/pages/SellerProductsPage.tsx
+          if grep -q useNotificationStore apps/web/src/features/buyer/pages/ProductPage.tsx; then
+            echo "MASIH LAMA: ProductPage.tsx di apps masih memakai useNotificationStore"
+            gagal=1
+          fi
+          if [ "$gagal" -ne 0 ]; then echo "Berhenti. Tidak ada file yang dihapus."; exit 1; fi
+          echo "Semua versi baru sudah ada di apps/web/src."
+
+      - name: Hapus file nyasar di folder utama
+        run: |
+          for f in AccountPage.tsx BuyerOrderDetailPage.tsx BuyerOrdersPage.tsx OrderReviewSection.tsx \
+                   PaymentPage.tsx ProductPage.tsx ReviewList.tsx SellerDashboardPage.tsx SellerOrdersPage.tsx \
+                   SellerProductsPage.tsx SellerVouchersPage.tsx SettingsPage.tsx auth.store.ts index.html \
+                   location.service.ts orders.service.ts product-metrics.service.ts products.service.ts \
+                   reviews.service.ts router.tsx share-product.ts upload.service.ts; do
+            if [ -f "$f" ]; then git rm -q "$f" && echo "HAPUS  $f"; fi
+          done
+
+      - name: Simpan perubahan ke repo
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A apps
+          if git diff --cached --quiet; then
+            echo "Tidak ada perubahan untuk disimpan."
+          else
+            git commit -m "Rapikan repo: pindahkan file perbaikan ke apps/web/src dan hapus file nyasar di folder utama"
+            git push
+          fi
