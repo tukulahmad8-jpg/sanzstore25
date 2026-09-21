@@ -103,6 +103,21 @@ export async function getOrders() {
   return { data: (data ?? []) as Order[] }
 }
 
+// Pesanan milik satu pengguna saja. Jangan mengandalkan RLS untuk ini: akun seller/admin
+// boleh membaca SEMUA pesanan, sehingga "Pesanan Saya" milik admin menampilkan pesanan semua orang.
+export async function getMyOrders(userId: string) {
+  const supabase = getSupabaseClient()
+  if (!supabase) return { data: getLocalOrders() }
+
+  const { data, error } = await supabase
+    .from('orders')
+    .select('*')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false })
+  if (error) throw new Error(`Gagal mengambil pesanan: ${error.message}`)
+  return { data: (data ?? []) as Order[] }
+}
+
 // Satu pesanan saja (dipakai halaman pembayaran). Jauh lebih ringan daripada getOrders().
 export async function getOrderById(orderId: string) {
   const supabase = getSupabaseClient()
