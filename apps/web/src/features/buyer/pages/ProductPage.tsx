@@ -5,11 +5,12 @@ import { useQuery } from '@tanstack/react-query'
 import { ChevronLeft, ChevronRight, Heart, Share2, ShoppingCart, Star, X } from 'lucide-react'
 import { getProductById, getProducts } from '@/services/products.service'
 import { getProductReviews } from '@/services/reviews.service'
+import { getProductMetrics } from '@/services/product-metrics.service'
 import { ReviewList } from '../components/ReviewList'
 import { Button } from '@/components/common/Button'
 import { useCartStore } from '@/stores/cart.store'
 import { useWishlistStore } from '@/stores/wishlist.store'
-import { useNotificationStore } from '@/stores/notification.store'
+import { toast } from '@/lib/notify'
 import { formatCurrency } from '@/utils/format'
 import { ProductCard } from '../components/ProductCard'
 
@@ -38,6 +39,7 @@ export function ProductPage() {
     enabled: Boolean(id),
   })
   const reviews = reviewsData?.data ?? []
+  const { data: metricsData } = useQuery({ queryKey: ['product-metrics'], queryFn: getProductMetrics })
   const products = data?.data ?? []
   const product = productData?.data ?? products.find((item) => item.id === id)
   const addItem = useCartStore((state) => state.addItem)
@@ -45,7 +47,7 @@ export function ProductPage() {
   const addWish = useWishlistStore((state) => state.add)
   const removeWish = useWishlistStore((state) => state.remove)
   const wishlistIds = useWishlistStore((state) => state.ids)
-  const notify = useNotificationStore((state) => state.show)
+  const notify = (message: string, tone: 'default' | 'success' | 'error' = 'success') => toast(message, tone)
   const [imageIndex, setImageIndex] = useState(0)
   const [qty, setQty] = useState(1)
   const [descriptionExpanded, setDescriptionExpanded] = useState(false)
@@ -61,6 +63,7 @@ export function ProductPage() {
   if (productLoading && !product) return <main className="mx-auto max-w-7xl px-4 py-8">Memuat produk...</main>
   if (!product) return <main className="mx-auto max-w-7xl px-4 py-8">Produk tidak ditemukan.</main>
   const currentProduct = product
+  const metric = metricsData?.data?.[product.id]
   const variants = product.has_variants ? (product.variants ?? []).filter((variant) => variant?.id) : []
   const selectedVariant = variants.find((variant) => variant.id === selectedVariantId)
   const requiresVariant = variants.length > 0
@@ -73,7 +76,7 @@ export function ProductPage() {
 
   function addToCart() {
     if (soldOut || (requiresVariant && !selectedVariant)) {
-      if (requiresVariant && !selectedVariant) notify('Pilih varian produk dulu')
+      if (requiresVariant && !selectedVariant) notify('Pilih varian produk dulu', 'default')
       return
     }
     const cartProduct = selectedVariant ? { ...currentProduct, price: selectedVariantPrice, stock: selectedVariant.stock, weight: selectedVariant.weight ?? currentProduct.weight, selected_variant: { ...selectedVariant, price: selectedVariantPrice } } : currentProduct
@@ -83,7 +86,7 @@ export function ProductPage() {
 
   function buyNow() {
     if (soldOut || (requiresVariant && !selectedVariant)) {
-      if (requiresVariant && !selectedVariant) notify('Pilih varian produk dulu')
+      if (requiresVariant && !selectedVariant) notify('Pilih varian produk dulu', 'default')
       return
     }
     const cartProduct = selectedVariant ? { ...currentProduct, price: selectedVariantPrice, stock: selectedVariant.stock, weight: selectedVariant.weight ?? currentProduct.weight, selected_variant: { ...selectedVariant, price: selectedVariantPrice } } : currentProduct
@@ -162,8 +165,12 @@ export function ProductPage() {
             <h1 className="mt-3 text-[28px] font-semibold leading-[1.2] tracking-[-0.018em] sm:text-[34px]">{product.title}</h1>
 
             <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-[var(--line)] pb-4 text-sm text-[var(--muted)]">
-              <span className="inline-flex items-center gap-1 text-amber-500"><Star size={16} fill="currentColor" /> 5.0</span>
-              <span>Terjual {product.sold}</span>
+              {metric?.rating ? (
+                <span className="inline-flex items-center gap-1 text-amber-500"><Star size={16} fill="currentColor" /> {metric.rating.toFixed(1)} <span className="text-[var(--muted)]">({metric.reviewCount})</span></span>
+              ) : (
+                <span>Belum ada ulasan</span>
+              )}
+              <span>Terjual {metric?.sold ?? product.sold}</span>
               <span>Stok {activeStock}</span>
               <span>Berat {activeWeight}g</span>
             </div>
@@ -263,7 +270,7 @@ export function ProductPage() {
                       ['Kondisi', 'Baru'],
                       ['Berat', `${product.weight}g`],
                       ['Stok', String(activeStock)],
-                      ['Terjual', String(product.sold)],
+                      ['Terjual', String(metric?.sold ?? product.sold)],
                       ...(requiresVariant ? [['Varian', variants.map((variant) => variant.name + ' (' + variant.stock + ')').join(', ')]] : []),
                     ].map(([label, value]) => <div key={label} className="grid grid-cols-[140px_1fr] gap-4 px-4 py-3 text-sm"><dt className="text-[var(--muted)]">{label}</dt><dd className="font-medium">{value}</dd></div>)}
                   </dl>

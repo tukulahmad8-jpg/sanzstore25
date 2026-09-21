@@ -5,7 +5,7 @@ import { useQuery } from '@tanstack/react-query'
 import { Card } from '@/components/common/Card'
 import { Button } from '@/components/common/Button'
 import { Input } from '@/components/common/Input'
-import { getOrders } from '@/services/orders.service'
+import { getMyOrders } from '@/services/orders.service'
 import { getProducts } from '@/services/products.service'
 import { getAddresses, saveAddresses, type BuyerAddress } from '@/services/address.service'
 import { searchLocations, type LocationOption } from '@/services/location.service'
@@ -86,7 +86,7 @@ function AccountContent() {
   const [addressError, setAddressError] = useState('')
   const [addressReady, setAddressReady] = useState(false)
 
-  const { data: orderData, isPending: ordersPending, error: ordersError, refetch: refetchOrders } = useQuery({ queryKey: ['buyer-orders', user?.id], queryFn: getOrders, enabled: !!user?.id })
+  const { data: orderData, isPending: ordersPending, error: ordersError, refetch: refetchOrders } = useQuery({ queryKey: ['buyer-orders', user?.id], queryFn: () => getMyOrders(String(user?.id ?? '')), enabled: !!user?.id })
   const { data: productData } = useQuery({ queryKey: ['products'], queryFn: getProducts })
   const orders = orderData?.data ?? []
   const products = productData?.data ?? []
