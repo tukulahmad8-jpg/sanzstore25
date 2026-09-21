@@ -1,7 +1,7 @@
 import { FormEvent, useMemo, useState } from 'react'
 import { confirmAction } from '@/lib/notify'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Boxes, Pencil, Plus, Power, Search, Trash2, X } from 'lucide-react'
+import { Boxes, CheckCircle2, Pencil, Plus, Power, Search, Trash2, X } from 'lucide-react'
 import { Button } from '@/components/common/Button'
 import { Card } from '@/components/common/Card'
 import { Input } from '@/components/common/Input'
@@ -200,7 +200,11 @@ export function SellerProductsPage() {
       </div>
 
       {successMessage ? (
-        <div className="seller-notice seller-notice-success">{successMessage}</div>
+        <div className="seller-notice is-success" role="status">
+          <span className="seller-notice-icon" aria-hidden="true"><CheckCircle2 size={18} /></span>
+          <span className="seller-notice-copy"><b>Berhasil</b><small>{successMessage}</small></span>
+          <button type="button" aria-label="Tutup pemberitahuan" onClick={() => setSuccessMessage('')}><X size={16} /></button>
+        </div>
       ) : null}
 
       <div className="seller-product-toolbar">
