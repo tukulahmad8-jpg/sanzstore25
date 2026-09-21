@@ -1,6 +1,6 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react'
 import { confirmAction } from '@/lib/notify'
-import { CalendarDays, Pencil, Plus, Power, TicketPercent, Trash2, Users, X } from 'lucide-react'
+import { AlertCircle, CalendarDays, CheckCircle2, Pencil, Plus, Power, TicketPercent, Trash2, Users, X } from 'lucide-react'
 import { Button } from '@/components/common/Button'
 import { Card } from '@/components/common/Card'
 import { Input } from '@/components/common/Input'
@@ -59,23 +59,22 @@ export function SellerVouchersPage() {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-  const [message, setMessage] = useState('')
+  const [notice, setNotice] = useState<{ tone: 'success' | 'error'; text: string } | null>(null)
 
   const activeCount = useMemo(() => rows.filter((row) => row.status === 'Aktif').length, [rows])
   const usedCount = useMemo(() => rows.reduce((sum, row) => sum + Number(row.used_count || 0), 0), [rows])
 
   async function load() {
     setLoading(true)
-    setMessage('')
     const supabase = getSellerSupabaseClient()
     if (!supabase) {
-      setMessage('Supabase belum terhubung.')
+      setNotice({ tone: 'error', text: 'Supabase belum terhubung.' })
       setLoading(false)
       return
     }
 
     const { data, error } = await supabase.from('vouchers').select('*').order('created_at', { ascending: false })
-    if (error) setMessage(error.message)
+    if (error) setNotice({ tone: 'error', text: error.message })
     else setRows((data || []) as Voucher[])
     setLoading(false)
   }
@@ -83,6 +82,13 @@ export function SellerVouchersPage() {
   useEffect(() => {
     void load()
   }, [])
+
+  // Pesan sukses hilang sendiri setelah 4 detik; pesan error tetap sampai ada aksi berikutnya.
+  useEffect(() => {
+    if (notice?.tone !== 'success') return
+    const timer = window.setTimeout(() => setNotice(null), 4000)
+    return () => window.clearTimeout(timer)
+  }, [notice])
 
   function edit(voucher: Voucher) {
     setForm({
@@ -107,7 +113,8 @@ export function SellerVouchersPage() {
     if (!supabase || saving) return
 
     setSaving(true)
-    setMessage('')
+    setNotice(null)
+    const wasEdit = Boolean(form.id)
     const payload = {
       id: form.id || crypto.randomUUID(),
       code: form.code.trim().toUpperCase(),
@@ -124,11 +131,12 @@ export function SellerVouchersPage() {
     }
 
     const { error } = await supabase.from('vouchers').upsert(payload)
-    if (error) setMessage(error.message)
+    if (error) setNotice({ tone: 'error', text: error.message })
     else {
       setOpen(false)
       setForm(emptyForm)
       await load()
+      setNotice({ tone: 'success', text: wasEdit ? 'Voucher berhasil diperbarui.' : 'Voucher berhasil dibuat.' })
     }
     setSaving(false)
   }
@@ -137,20 +145,29 @@ export function SellerVouchersPage() {
     if (!(await confirmAction(`Hapus voucher ${voucher.code}?`, { confirmText: 'Hapus voucher', danger: true }))) return
     const supabase = getSellerSupabaseClient()
     if (!supabase) return
+    setNotice(null)
     const { error } = await supabase.from('vouchers').delete().eq('id', voucher.id)
-    if (error) setMessage(error.message)
-    else await load()
+    if (error) setNotice({ tone: 'error', text: error.message })
+    else {
+      await load()
+      setNotice({ tone: 'success', text: `Voucher ${voucher.code} berhasil dihapus.` })
+    }
   }
 
   async function toggle(voucher: Voucher) {
     const supabase = getSellerSupabaseClient()
     if (!supabase) return
+    setNotice(null)
+    const nextStatus = voucher.status === 'Aktif' ? 'Nonaktif' : 'Aktif'
     const { error } = await supabase
       .from('vouchers')
-      .update({ status: voucher.status === 'Aktif' ? 'Nonaktif' : 'Aktif', updated_at: new Date().toISOString() })
+      .update({ status: nextStatus, updated_at: new Date().toISOString() })
       .eq('id', voucher.id)
-    if (error) setMessage(error.message)
-    else await load()
+    if (error) setNotice({ tone: 'error', text: error.message })
+    else {
+      await load()
+      setNotice({ tone: 'success', text: `Voucher ${voucher.code} berhasil diubah menjadi ${nextStatus}.` })
+    }
   }
 
   return (
@@ -171,7 +188,13 @@ export function SellerVouchersPage() {
         <div><span className="seller-voucher-summary-icon blue"><Users size={19} /></span><p>Total digunakan</p><strong>{usedCount}</strong></div>
       </div>
 
-      {message ? <div className="seller-notice">{message}</div> : null}
+      {notice ? (
+        <div className={`seller-notice ${notice.tone === 'success' ? 'is-success' : 'is-error'}`} role={notice.tone === 'success' ? 'status' : 'alert'}>
+          <span className="seller-notice-icon" aria-hidden="true">{notice.tone === 'success' ? <CheckCircle2 size={18} /> : <AlertCircle size={18} />}</span>
+          <span className="seller-notice-copy"><b>{notice.tone === 'success' ? 'Berhasil' : 'Terjadi masalah'}</b><small>{notice.text}</small></span>
+          <button type="button" aria-label="Tutup pemberitahuan" onClick={() => setNotice(null)}><X size={16} /></button>
+        </div>
+      ) : null}
 
       {loading ? (
         <p className="seller-loading-text">Memuat voucher...</p>
