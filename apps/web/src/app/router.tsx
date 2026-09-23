@@ -19,6 +19,7 @@ const SellerDashboardPage = lazy(() => import('@/features/seller/pages/SellerDas
 const SellerProductsPage = lazy(() => import('@/features/seller/pages/SellerProductsPage').then((m) => ({ default: m.SellerProductsPage })))
 const SellerOrdersPage = lazy(() => import('@/features/seller/pages/SellerOrdersPage').then((m) => ({ default: m.SellerOrdersPage })))
 const SellerVouchersPage = lazy(() => import('@/features/seller/pages/SellerVouchersPage').then((m) => ({ default: m.SellerVouchersPage })))
+const SellerReviewsPage = lazy(() => import('@/features/seller/pages/SellerReviewsPage').then((m) => ({ default: m.SellerReviewsPage })))
 const ReportsPage = lazy(() => import('@/features/seller/pages/ReportsPage').then((m) => ({ default: m.ReportsPage })))
 const SettingsPage = lazy(() => import('@/features/seller/pages/SettingsPage').then((m) => ({ default: m.SettingsPage })))
 
