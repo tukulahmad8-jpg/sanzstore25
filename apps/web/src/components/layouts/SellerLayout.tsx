@@ -8,6 +8,7 @@ import {
   Moon,
   Package,
   Settings,
+  Sta
   Store,
   Sun,
   TicketPercent,
@@ -21,6 +22,7 @@ const menus = [
   { label: 'Produk', href: '/seller/products', icon: Package },
   { label: 'Pesanan', href: '/seller/orders', icon: ClipboardList },
   { label: 'Voucher', href: '/seller/vouchers', icon: TicketPercent },
+  { label: 'Ulasan', href: '/seller/reviews', icon: Star },
   { label: 'Laporan', href: '/seller/reports', icon: BarChart3 },
   { label: 'Pengaturan', href: '/seller/settings', icon: Settings },
 ] as const
@@ -30,6 +32,7 @@ function currentSection(pathname: string) {
   if (pathname.startsWith('/seller/products')) return 'Produk'
   if (pathname.startsWith('/seller/orders')) return 'Pesanan'
   if (pathname.startsWith('/seller/vouchers')) return 'Voucher'
+  if (pathname.startsWith('/seller/reviews')) return 'Ulasan'
   if (pathname.startsWith('/seller/reports')) return 'Laporan'
   if (pathname.startsWith('/seller/settings')) return 'Pengaturan'
   return 'Seller Center'
