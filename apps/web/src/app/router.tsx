@@ -60,6 +60,7 @@ export const router = createBrowserRouter([
           { path: 'products', element: withSuspense(<SellerProductsPage />) },
           { path: 'orders', element: withSuspense(<SellerOrdersPage />) },
           { path: 'vouchers', element: withSuspense(<SellerVouchersPage />) },
+          { path: 'reviews', element: withSuspense(<SellerReviewsPage />) },
           { path: 'reports', element: withSuspense(<ReportsPage />) },
           { path: 'settings', element: withSuspense(<SettingsPage />) },
           { path: '*', element: <ErrorPage /> },
