@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Star, MessageSquareText } from 'lucide-react'
 import { Card } from '@/components/common/Card'
-import { getSupabaseClient } from '@/lib/supabase'
+import { getSellerSupabaseClient } from '@/lib/supabase'
 
 type ReviewRow = {
   id: string
@@ -58,7 +58,7 @@ export function SellerReviewsPage() {
     async function load() {
       setLoading(true)
       setError('')
-      const supabase = getSupabaseClient()
+      const supabase = getSellerSupabaseClient()
       if (!supabase) {
         setError('Koneksi Supabase belum siap.')
         setLoading(false)
