@@ -8,7 +8,7 @@ import {
   Moon,
   Package,
   Settings,
-  Sta
+  Star,
   Store,
   Sun,
   TicketPercent,
