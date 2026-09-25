@@ -59,6 +59,11 @@ export function SellerReviewsPage() {
       setLoading(true)
       setError('')
       const supabase = getSupabaseClient()
+      if (!supabase) {
+        setError('Koneksi Supabase belum siap.')
+        setLoading(false)
+        return
+      }
       const { data, error: fetchError } = await supabase
         .from('reviews')
         .select('id,product_id,order_id,customer_phone,rating,comment,created_at,images,products(title,image),orders(customer)')
