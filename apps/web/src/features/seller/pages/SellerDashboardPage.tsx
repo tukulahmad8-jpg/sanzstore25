@@ -2,15 +2,11 @@ import { useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import {
-  ArrowRight,
-  BarChart3,
   Boxes,
   ClipboardList,
   PackageCheck,
   PackagePlus,
   Star,
-  TrendingUp,
-  WalletCards,
 } from 'lucide-react'
 import { Card } from '@/components/common/Card'
 import { getSellerSupabaseClient } from '@/lib/supabase'
@@ -54,9 +50,6 @@ function isRevenueOrder(order: any) {
   const paymentStatus = String(order.payment_status || '').trim().toLowerCase()
   const refundStatus = String(order.refund?.status || '').trim().toLowerCase()
 
-  // Omzet hanya dari pesanan yang sudah dibayar. isPaid() tetap mengenali pesanan lama
-  // yang statusnya sudah Diproses/Dikirim/Selesai walau payment_status belum "paid".
-  // Pesanan "Belum Bayar" tidak boleh ikut dihitung sebagai penjualan.
   return isPaid(order)
     && !['refund', 'dibatalkan', 'kedaluwarsa', 'cancelled', 'canceled'].includes(status)
     && !['cancelled', 'canceled', 'expired'].includes(paymentStatus)
@@ -164,172 +157,151 @@ export function SellerDashboardPage() {
   const latestOrders = orders.slice(0, 5)
   const loading = loadingOrders || loadingProducts || loadingReviews
 
-  const statCards = [
-    { label: 'Total penjualan', value: loading ? '...' : formatCurrency(stats.totalSales), icon: WalletCards, note: `Hari ini ${formatCurrency(stats.omzetToday)}`, accent: 'brand' },
-    { label: 'Pesanan hari ini', value: loading ? '...' : String(stats.todayOrders), icon: ClipboardList, note: 'Order masuk hari ini', accent: 'blue' },
-    { label: 'Produk aktif', value: loading ? '...' : String(stats.activeProducts), icon: PackageCheck, note: `${products.length} total produk`, accent: 'green' },
-    { label: 'Rating toko', value: loading ? '...' : reviews.length ? stats.averageRating.toFixed(1) : '-', icon: Star, note: reviews.length ? `${reviews.length} ulasan terbaru` : 'Belum ada ulasan', accent: 'amber' },
-  ] as const
-
   return (
-    <main className="seller-page seller-dashboard-page seller-dashboard-v3">
-      <section className="seller-dashboard-welcome">
-        <div>
-          <span className="seller-eyebrow">SELLER CENTER</span>
-          <h1>Ringkasan Toko</h1>
-        </div>
-        <div className="seller-dashboard-welcome-actions">
-          <button className="seller-heading-action" type="button" onClick={() => navigate('/seller/reports')}>
-            <BarChart3 size={17} /> Laporan
-          </button>
-          <button className="seller-primary-action" type="button" onClick={() => navigate('/seller/products')}>
-            <PackagePlus size={17} /> Tambah Produk
-          </button>
-        </div>
-      </section>
-
-      <Card className="seller-overview-strip">
-        {statCards.map(({ label, value, icon: Icon, note, accent }) => (
-          <div key={label} className={`seller-overview-item seller-overview-${accent}`}>
-            <span className="seller-overview-icon"><Icon size={18} /></span>
-            <div className="seller-overview-copy">
-              <span>{label}</span>
-              <strong>{value}</strong>
-              <small>{note}</small>
-            </div>
-          </div>
-        ))}
-      </Card>
-
-      <div className="seller-dashboard-priority-grid">
-        <Card className="seller-dashboard-orders-card">
-          <div className="seller-card-heading compact">
+    <main className="seller-page seller-dashboard-page seller-dashboard-v3 seller-dash-v60">
+      <div className="dash-hero">
+        <Card className="dash-hero-card">
+          <div className="dash-hero-top">
             <div>
-              <span className="seller-card-kicker">ORDER</span>
-              <h2>Pesanan Terbaru</h2>
+              <h1>Ringkasan Toko</h1>
+              <p>Selamat datang kembali — begini performa toko kamu.</p>
             </div>
-            <button type="button" onClick={() => navigate('/seller/orders')}>Semua pesanan <ArrowRight size={15} /></button>
+            <div className="dash-hero-actions">
+              <button type="button" onClick={() => navigate('/seller/reports')}>Laporan lengkap</button>
+              <button type="button" className="is-primary" onClick={() => navigate('/seller/products')}>
+                <PackagePlus size={16} /> Tambah produk
+              </button>
+            </div>
           </div>
 
-          <div className="seller-dashboard-order-table">
+          <div className="dash-hero-body">
+            <div className="dash-hero-number">
+              <span>Omzet minggu ini</span>
+              <strong>{loading ? '...' : formatCurrency(weeklySales)}</strong>
+              <small>Hari ini {loading ? '...' : formatCurrency(stats.omzetToday)} · Total sepanjang waktu {loading ? '...' : formatCurrency(stats.totalSales)}</small>
+            </div>
+            <div className="dash-hero-chart">
+              {salesByDay.map((item) => (
+                <div key={item.label} className="dash-hero-bar-col">
+                  <div className="dash-hero-bar-track">
+                    <div className="dash-hero-bar" style={{ height: `${Math.max((item.value / maxSales) * 100, item.value ? 6 : 2)}%` }} title={formatCurrency(item.value)} />
+                  </div>
+                  <span>{item.label}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </Card>
+
+        <div className="dash-secondary-strip">
+          <button type="button" onClick={() => navigate('/seller/orders')}>
+            <span>Pesanan hari ini</span>
+            <strong>{loading ? '...' : stats.todayOrders}</strong>
+          </button>
+          <button type="button" onClick={() => navigate('/seller/products')}>
+            <span>Produk aktif</span>
+            <strong>{loading ? '...' : stats.activeProducts}</strong>
+            <small>{products.length} total</small>
+          </button>
+          <button type="button" onClick={() => navigate('/seller/reviews')}>
+            <span>Rating toko</span>
+            <strong>{loading ? '...' : reviews.length ? stats.averageRating.toFixed(1) : '–'}</strong>
+            <small>{reviews.length ? `${reviews.length} ulasan` : 'Belum ada ulasan'}</small>
+          </button>
+        </div>
+      </div>
+
+      <div className="dash-columns">
+        <Card className="dash-orders-card">
+          <div className="dash-card-head">
+            <h2>Pesanan terbaru</h2>
+            <button type="button" onClick={() => navigate('/seller/orders')}>Lihat semua</button>
+          </div>
+
+          <div className="dash-order-table">
             {latestOrders.length ? latestOrders.map((order: any) => (
-              <button key={order.id} type="button" onClick={() => navigate('/seller/orders')} className="seller-dashboard-order-row">
-                <div className="seller-dashboard-order-main">
+              <button key={order.id} type="button" onClick={() => navigate('/seller/orders')} className="dash-order-row">
+                <div className="dash-order-main">
                   <b>{order.id}</b>
                   <span>{order.customer?.name || order.buyer_phone || 'Buyer'}</span>
                 </div>
-                <span className={`seller-dashboard-status is-${statusTone(order)}`}>{shortStatus(order)}</span>
+                <span className={`dash-status is-${statusTone(order)}`}>{shortStatus(order)}</span>
                 <strong>{formatCurrency(Number(order.total || 0))}</strong>
-                <ArrowRight size={15} />
               </button>
             )) : (
-              <div className="seller-empty-state compact">Belum ada pesanan.</div>
+              <div className="dash-empty">Belum ada pesanan.</div>
             )}
           </div>
         </Card>
 
-        <Card className="seller-attention-card">
-          <div className="seller-card-heading compact">
-            <div>
-              <span className="seller-card-kicker">PRIORITAS</span>
-              <h2>Perlu Ditindak</h2>
-            </div>
+        <Card className="dash-attention-card">
+          <div className="dash-card-head">
+            <h2>Perlu ditindak</h2>
           </div>
 
-          <div className="seller-attention-list">
+          <div className="dash-attention-list">
             <button type="button" onClick={() => navigate('/seller/orders')}>
-              <span className="seller-attention-icon pending"><ClipboardList size={18} /></span>
-              <div><b>Menunggu pembayaran</b></div>
+              <span className="dash-attention-icon is-pending"><ClipboardList size={17} /></span>
+              <span className="dash-attention-label">Menunggu pembayaran</span>
               <strong>{stats.waitingPayment}</strong>
-              <ArrowRight size={15} />
             </button>
             <button type="button" onClick={() => navigate('/seller/orders')}>
-              <span className="seller-attention-icon paid"><PackageCheck size={18} /></span>
-              <div><b>Siap diproses</b></div>
+              <span className="dash-attention-icon is-paid"><PackageCheck size={17} /></span>
+              <span className="dash-attention-label">Siap diproses</span>
               <strong>{stats.readyToProcess}</strong>
-              <ArrowRight size={15} />
             </button>
             <button type="button" onClick={() => navigate('/seller/products')}>
-              <span className="seller-attention-icon stock"><Boxes size={18} /></span>
-              <div><b>Stok menipis</b></div>
+              <span className="dash-attention-icon is-stock"><Boxes size={17} /></span>
+              <span className="dash-attention-label">Stok menipis</span>
               <strong>{lowStock.length}</strong>
-              <ArrowRight size={15} />
             </button>
           </div>
         </Card>
       </div>
 
-      <div className="seller-dashboard-insight-grid">
-        <Card className="seller-sales-card seller-sales-card-v3">
-          <div className="seller-card-heading">
-            <div>
-              <span className="seller-card-kicker">PERFORMA</span>
-              <h2>Penjualan 7 Hari</h2>
-              <p>Total minggu ini <b>{formatCurrency(weeklySales)}</b></p>
-            </div>
-            <span className="seller-card-heading-icon"><TrendingUp size={20} /></span>
-          </div>
-
-          <div className="seller-sales-chart seller-sales-chart-v3">
-            {salesByDay.map((item) => (
-              <div key={item.label} className="seller-sales-column">
-                <span className="seller-sales-value">{item.value ? formatCurrency(item.value) : '-'}</span>
-                <div className="seller-sales-bar-track">
-                  <div className="seller-sales-bar" style={{ height: `${Math.max((item.value / maxSales) * 100, item.value ? 8 : 2)}%` }} />
-                </div>
-                <span className="seller-sales-label">{item.label}</span>
-              </div>
-            ))}
-          </div>
-        </Card>
-
-        <Card className="seller-top-products-card">
-          <div className="seller-card-heading compact">
-            <div><span className="seller-card-kicker">PRODUK</span><h2>Produk Terlaris</h2></div>
-            <Boxes size={19} />
-          </div>
-          <div className="seller-top-products-list">
+      <div className="dash-columns dash-columns-thirds">
+        <Card className="dash-list-card">
+          <div className="dash-card-head"><h2>Produk terlaris</h2></div>
+          <div className="dash-simple-list">
             {bestProducts.length ? bestProducts.map((product, index) => (
-              <div key={product.id} className="seller-top-product-row">
-                <span className="seller-rank">{index + 1}</span>
+              <div key={product.id} className="dash-simple-row">
+                <span className="dash-rank">{index + 1}</span>
                 <div className="min-w-0"><b className="truncate">{product.title}</b><small>{product.count} terjual</small></div>
               </div>
-            )) : <div className="seller-empty-state compact">Belum ada data penjualan.</div>}
+            )) : <div className="dash-empty">Belum ada data penjualan.</div>}
           </div>
         </Card>
-      </div>
 
-      <div className="seller-dashboard-foot-grid">
-        <Card className="seller-stock-card-v3">
-          <div className="seller-card-heading compact">
-            <div><span className="seller-card-kicker">INVENTORY</span><h2>Stok Menipis</h2></div>
-            <button type="button" onClick={() => navigate('/seller/products')}>Kelola <ArrowRight size={15} /></button>
+        <Card className="dash-list-card">
+          <div className="dash-card-head">
+            <h2>Stok menipis</h2>
+            <button type="button" onClick={() => navigate('/seller/products')}>Kelola</button>
           </div>
-          <div className="seller-stock-list-v3">
+          <div className="dash-simple-list">
             {lowStock.length ? lowStock.map((product: any) => (
-              <button key={product.id} type="button" onClick={() => navigate('/seller/products')}>
+              <button key={product.id} type="button" className="dash-simple-row is-button" onClick={() => navigate('/seller/products')}>
                 <div className="min-w-0"><b className="truncate">{product.title}</b></div>
-                <em className="seller-stock-pill">Stok {product.stock}</em>
+                <em>Stok {product.stock}</em>
               </button>
-            )) : <div className="seller-empty-state compact">Semua stok masih aman.</div>}
+            )) : <div className="dash-empty">Semua stok masih aman.</div>}
           </div>
         </Card>
 
-        <Card className="seller-review-card seller-review-card-v3">
-          <div className="seller-card-heading compact">
-            <div><span className="seller-card-kicker">CUSTOMER</span><h2>Ulasan Terbaru</h2></div>
-            <Star size={19} className="text-amber-500" />
+        <Card className="dash-list-card">
+          <div className="dash-card-head">
+            <h2>Ulasan terbaru</h2>
+            <Star size={16} className="text-amber-500" />
           </div>
-          <div className="seller-review-list seller-review-list-v3">
+          <div className="dash-simple-list">
             {reviews.length ? reviews.slice(0, 3).map((review) => (
-              <div key={review.id} className="seller-review-item">
-                <div className="seller-review-meta">
+              <div key={review.id} className="dash-review-row">
+                <div className="dash-review-top">
                   <b className="line-clamp-1">{productNames.get(review.product_id) || 'Produk'}</b>
-                  <span><Star size={12} className="fill-current" /> {review.rating}</span>
+                  <span><Star size={11} className="fill-current" /> {review.rating}</span>
                 </div>
                 <p className="line-clamp-1">{review.comment?.trim() || 'Rating tanpa komentar.'}</p>
               </div>
-            )) : <div className="seller-empty-state compact">Belum ada ulasan.</div>}
+            )) : <div className="dash-empty">Belum ada ulasan.</div>}
           </div>
         </Card>
       </div>
